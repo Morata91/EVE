@@ -1,79 +1,79 @@
-# Towards End-to-end Video-based Eye Tracking
+# エンドツーエンドのビデオベースのアイトラッキングに向けて
 
-The code accompanying our ECCV 2020 publication and dataset, EVE.
+ECCV 2020で発表された論文とデータセット、EVEに付随するコードです。
 
-* Authors: [Seonwook Park](https://ait.ethz.ch/people/spark/), [Emre Aksan](https://ait.ethz.ch/people/eaksan/), [Xucong Zhang](https://ait.ethz.ch/people/zhang/), and [Otmar Hilliges](https://ait.ethz.ch/people/hilliges/)
-* Project page: https://ait.ethz.ch/eve
-* Codalab (test set evaluation and public leaderboard): https://competitions.codalab.org/competitions/28954
+* 著者: [Seonwook Park](https://ait.ethz.ch/people/spark/)、[Emre Aksan](https://ait.ethz.ch/people/eaksan/)、[Xucong Zhang](https://ait.ethz.ch/people/zhang/)、[Otmar Hilliges](https://ait.ethz.ch/people/hilliges/)
+* プロジェクトページ: https://ait.ethz.ch/eve
+* Codalab（テストセット評価とパブリックリーダーボード）: https://competitions.codalab.org/competitions/28954
 
 
-## Setup
+## セットアップ
 
-Preferably, setup a Docker image or virtual environment ([virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/install.html) is recommended) for this repository. Please note that we have tested this code-base in the following environments:
-* Ubuntu 18.04 / A Linux-based cluster system (CentOS 7.8)
+このリポジトリのセットアップには、Dockerイメージや仮想環境（[virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/install.html)推奨）を使用することを推奨します。このコードベースは以下の環境でテストされています：
+* Ubuntu 18.04 / Linuxベースのクラスターシステム（CentOS 7.8）
 * Python 3.6 / Python 3.7
 * PyTorch 1.5.1
 
-Clone this repository somewhere with:
+リポジトリをクローンし、以下のコマンドを実行してください：
 
     git clone git@github.com:swook/EVE
     cd EVE/
 
-Then from the base directory of this repository, install all dependencies with:
+その後、リポジトリのベースディレクトリから、以下のコマンドで全ての依存関係をインストールしてください：
 
     pip install -r requirements.txt
 
-Please note the [PyTorch official installation guide](https://pytorch.org/get-started/locally/) for setting up the `torch` and `torchvision` packages on your specific system.
+`torch`および`torchvision`パッケージのセットアップについては、[PyTorchの公式インストールガイド](https://pytorch.org/get-started/locally/)を参照してください。
 
-You will also need to setup **ffmpeg** for video decoding. On Linux, we recommend installing distribution-specific packages (usually named `ffmpeg`). If necessary, check out the [official download page](https://ffmpeg.org/download.html) or [compilation instructions](https://trac.ffmpeg.org/wiki/CompilationGuide).
+また、ビデオデコードのために**ffmpeg**をセットアップする必要があります。Linuxでは、ディストリビューション固有のパッケージ（通常は`ffmpeg`）をインストールすることを推奨します。必要に応じて、[公式ダウンロードページ](https://ffmpeg.org/download.html)や[コンパイル手順](https://trac.ffmpeg.org/wiki/CompilationGuide)を参照してください。
 
 
-## Usage
+## 使用方法
 
-### Information on the code framework
+### コードフレームワークに関する情報
 
-#### Configuration file system
+#### 設定ファイルシステム
 
-All available configuration parameters are defined in `src/core/config_default.py`.
+全ての利用可能な設定パラメータは、`src/core/config_default.py`に定義されています。
 
-In order to override the default values, one can do:
+デフォルト値を上書きするには、以下の方法があります：
 
-1. Pass the parameter via a command-line parameter to `train.py` or `inference.py`. Note that in this case, replace all `_` characters with `-`. E.g. the config. parameter `refine_net_enabled` becomes `--refine-net-enabled 1`. Note that boolean parameters can be passed in via either `0/no/false` or `1/yes/true`.
-2. Create a JSON file such as `src/configs/eye_net.json` or `src/configs/refine_net.json`.
+1. `train.py`または`inference.py`にコマンドラインパラメータとしてパラメータを渡す。この場合、全ての`_`文字を`-`に置き換えてください。例えば、設定パラメータ`refine_net_enabled`は`--refine-net-enabled 1`となります。ブールパラメータは`0/no/false`または`1/yes/true`のいずれかで渡すことができます。
+2. `src/configs/eye_net.json`や`src/configs/refine_net.json`のようなJSONファイルを作成する。
 
-The order of application are:
-1. Default parameters
-2. JSON-provided parameters, in order of JSON file declaration. For instance, in the command `python train.py config1.json config2.json`, `config2.json` overrides `config1.json` entries should there be any overlap.
-3. CLI-provided parameters.
+適用の順序は次の通りです：
+1. デフォルトパラメータ
+2. JSONファイルで提供されるパラメータ。JSONファイルの宣言順に適用されます。例えば、コマンド`python train.py config1.json config2.json`では、重複するエントリがあれば`config2.json`が`config1.json`を上書きします。
+3. CLIで提供されるパラメータ。
 
-#### Automatic logging to Google Sheets
+#### Google Sheetsへの自動ログ記録
 
-This framework implements an automatic logging code of all parameters, loss terms, and metrics to a Google Sheets document. This is done by the `gspread` library. To enable this possibility, follow these instructions:
+このフレームワークは、全てのパラメータ、損失項、およびメトリクスをGoogle Sheetsドキュメントに自動的に記録するコードを実装しています。これは`gspread`ライブラリによって行われます。この機能を有効にするには、以下の手順に従ってください：
 
-1. Follow the instructions at https://gspread.readthedocs.io/en/latest/oauth2.html#for-end-users-using-oauth-client-id
-2. Set `--gsheet-secrets-json-file` to a path to the credentials JSON file, and set `--gsheet-workbook-key` to the document key. This key is the part after `https://docs.google.com/spreadsheets/d/` and before any query or hash parameters.
+1. https://gspread.readthedocs.io/en/latest/oauth2.html#for-end-users-using-oauth-client-id の手順に従ってください。
+2. `--gsheet-secrets-json-file`に資格情報JSONファイルへのパスを、`--gsheet-workbook-key`にドキュメントキーを設定してください。このキーは`https://docs.google.com/spreadsheets/d/`の後、クエリやハッシュパラメータの前にある部分です。
 
-An example config JSON file can be found at `src/configs/sample_gsheet.json`.
+サンプルの設定JSONファイルは、`src/configs/sample_gsheet.json`にあります。
 
-### Training a model
+### モデルのトレーニング
 
-To train a model, simply run `python train.py` from `src/` with the appropriate configuration changes that are desired (see __"Configuration file system"__ above).
+モデルをトレーニングするには、`src/`ディレクトリから`python train.py`を適切な設定変更で実行してください（「設定ファイルシステム」を参照）。
 
-Note, that in order to resume the training of an existing model you must provide the path to the output folder via the `--resume-from` argument.
+既存のモデルのトレーニングを再開するには、`--resume-from`引数で出力フォルダへのパスを指定する必要があります。
 
-Also, at every fresh run of `train.py`, a unique identifier is generated to produce a unique output folder in `outputs/EVE/`. Hence, it is recommended to use the Google Sheets logging feature (see __"Automatic logging to Google Sheets"__) to keep track of your models.
+また、`train.py`の各実行時に一意の識別子が生成され、`outputs/EVE/`に一意の出力フォルダが生成されます。したがって、モデルの追跡にはGoogle Sheetsのログ記録機能（「Google Sheetsへの自動ログ記録」を参照）を使用することを推奨します。
 
-### Running inference
+### 推論の実行
 
-The single-sample inference script at `src/inference.py` takes in the same arguments as `train.py` but expects two arguments in particular:
+`src/inference.py`のシングルサンプル推論スクリプトは、`train.py`と同じ引数を受け取りますが、特に以下の2つの引数を期待します：
 
-* `--input-path` is the path to a `basler.mp4` or `webcam_l.mp4` or `webcam_c.mp4` or `webcam_r.mp4` that exists in the EVE dataset.
-* `--output-path` is a path to a desired output location (ending in `.mp4`).
+* `--input-path` は、EVEデータセット内に存在する `basler.mp4`、`webcam_l.mp4`、`webcam_c.mp4`、または `webcam_r.mp4` へのパスです。
+* `--output-path` は、望む出力場所へのパス（`.mp4`で終わる）です。
 
-This script works for both training, validation, and test samples and shows the reference point-of-gaze ground-truth when available.
+このスクリプトは、トレーニング、検証、およびテストサンプルの両方に対応しており、利用可能な場合は参照点の視線真実値を表示します。
 
-## Citation
-If using this code-base and/or the EVE dataset in your research, please cite the following publication:
+## 引用
+このコードベースおよび/またはEVEデータセットを研究に使用する場合は、以下の論文を引用してください：
 
     @inproceedings{Park2020ECCV,
       author    = {Seonwook Park and Emre Aksan and Xucong Zhang and Otmar Hilliges},
@@ -84,10 +84,10 @@ If using this code-base and/or the EVE dataset in your research, please cite the
 
 ## Q&A
 
-**Q: How do I use this code for screen-based eye tracking?**
+**Q: このコードを画面ベースのアイトラッキングに使用するにはどうすれば良いですか？**
 
-A: This code does not offer actual eye tracking. Rather, it concerns the benchmarking of the video-based gaze estimation methods outlined in the original paper. Extending this code to support an easy-to-use software for screen-based eye tracking is somewhat non-trivial, due to requirements on camera calibration (intrinsics, extrinsics), and an efficient pipeline for accurate and stable real-time eye or face patch extraction. Thus, we consider this to be beyond the scope of this code repository.
+A: このコードは実際のアイトラッキングを提供するものではありません。むしろ、元の論文に記載されているビデオベースの視線推定方法のベンチマークを行います。このコードを画面ベースのアイトラッキングに対応する使いやすいソフトウェアに拡張するのは、カメラのキャリブレーション（内部パラメータ、外部パラメータ）や、正確かつ安定したリアルタイムの目または顔のパッチ抽出のための効率的なパイプラインの要件があるため、やや非自明です。したがって、このコードリポジトリの範囲外と考えています。
 
-**Q: Where are the test set labels?**
+**Q: テストセットのラベルはどこにありますか？**
 
-A: Our public evaluation server and leaderboard are hosted by Codalab at https://competitions.codalab.org/competitions/28954. This allows for evaluations on our test set to be consistent and reliable, and encourage competition in the field of video-based gaze estimation. Please note that the performance reported by Codalab is not strictly speaking comparable to the original paper's results, as we only perform evaluation on a large subset of the full test set. We recommend acquiring the updated performance figures from the [leaderboard](https://competitions.codalab.org/competitions/28954#results).
+A: 公共評価サーバーとリーダーボードは、https://competitions.codalab.org/competitions/28954 にホストされています。これにより、テストセットの評価が一貫して信頼性があり、ビデオベースの視線推定分野での競争を促進します。Codalabによる評価のパフォーマンスは、元の論文の結果と厳密には比較できないことに注意してください。これは、フルテストセットの大部分でのみ評価を行うためです。更新されたパフォーマンスの数値は、[リーダーボード](https://competitions.codalab.org/competitions/28954#results)から取得することをお勧めします。
